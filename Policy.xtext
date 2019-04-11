@@ -1,0 +1,186 @@
+grammar com.ffu.Policy with org.eclipse.xtext.common.Terminals
+
+generate policy "http://www.ffu.com/Policy"
+
+Domain:
+	(interfacePath = Path)
+	(resources += pResource)+
+	(organization = Organization)
+	(entities += Entity)*
+	(capability = Capability)?
+	(roles += Role)+
+	(rolePolicies += RolePolicy)+
+	(entityPolicies += EntityPolicy)*
+;
+
+Path:
+	'GlobalUri'':'uri=STRING
+;
+
+Capability:
+	'Capabilities' '{'  capabilities += CapabilityRule+ '}'
+;
+
+CapabilityRule:
+	resource = [Action | FQN] '{'
+		subActions += CapabilityAction*
+	'}'
+;
+
+Entity:
+	'Entity' name=ID 'identifier' idType=Type idName=STRING '{' path=GetPath? | properties += (Property|EntityRef)* '}'
+;
+
+Property:
+	type=(Type | EntityRef) name=ID
+;
+
+GetPath:
+	'uri' STRING
+;
+
+
+Type:
+	({tString}'string' | {tInt}'int' | {tFloat}'float' | {tBoolean}'boolean' | {tDate}'date' | {tTime}'time')
+;
+
+EntityRef:
+	ref=[Entity]
+;
+
+
+CapabilityAction:
+	action = [Action | FQN] ('{' nestedActions += CapabilityAction* '}')?
+;
+
+pResource:
+	'Resource' name=ID '{'
+	
+	'URI' ':' uri = STRING
+	
+	actions += Action*
+	
+	'}'
+;
+
+
+
+FQN: ID ("." ID)*;
+
+Action:
+	'Action' name=ID '{'
+	
+	// Rest path
+	'path' ':' path = STRING
+	'produces' ':' product = produceType
+	('QueryParam' ':' queryParam+=QueryParam*)?
+	
+	//('Entity' ':'  entities += EntityRef (',' entities+=EntityRef)*)?
+	
+	'}'
+;
+
+
+QueryParam:
+	varName=STRING type=QueryType
+;
+
+QueryType:
+	'int'|'string'
+;
+
+produceType:
+	'text' | 'plain' | 'json'
+;
+
+Organization:
+	'Organization' name=ID '{'
+		organizations += Organization*
+	'}'
+;
+
+RoleType:
+	roleRefs  = RoleRef | {Everyone}'Everyone'
+;
+
+RoleRef:
+	ref = [Role]
+;
+
+Role:
+	'Role' name=ID
+;
+
+RolePolicy:
+	'RolePolicy' ':' role=RoleType 'can' action=[Action|FQN] require=Require?
+;
+
+EntityPolicy:
+	'EntityPolicy' ':' entity=[Entity] 'in' action=[Action|FQN] require=Require
+;
+
+
+Require:
+	'if' '(' requirement=LogicExp ')'
+;
+
+LogicExp returns Proposition:
+	Conjunction ('||' {OR.left=current} right=Conjunction)* 
+;
+
+Conjunction returns Proposition:
+	Condition ('&&' {AND.left=current} right=Condition)*
+;
+
+Condition returns Proposition:
+	 Comparison | Bool | StringComparison // EntityProperty
+;
+
+Comparison:
+	left=Exp (op=RelationalOp right=Exp)?
+;
+
+RelationalOp:
+	{RelEQ} '==' | {RelLT} '<' | {RelGT} '>' | {RelLTE} '<=' | {RelGTE} '>=' | {RelNEQ} '!='
+;
+
+Exp returns Expression:
+	Factor ( ('+' {Add.left=current} | '-' {Sub.left=current}) right=Factor)*
+;
+
+Factor returns Expression:
+	Primitive ( ('*' {Mul.left=current} | '/' {Div.left=current}) right=Primitive)*
+;
+
+Primitive returns Expression:
+	IntExp | '(' fisk=LogicExp ')' | EntityProperty
+;
+
+EntityProperty:
+//	entity=[Entity]('.' property+=[Property])+
+	entity=[Entity]'.' property+=[Property|FQN]
+;
+
+IntExp:
+	value=INT
+;
+
+StringComparison:
+	left=StringValue operator=StringOp right=StringValue
+;
+
+StringValue:
+	StringPrim | EntityProperty
+;
+
+StringPrim:
+	value = STRING
+;
+
+StringOp:
+	{RelEQ} '==' | {RelNEQ} '!='
+;
+
+Bool:
+	bool=('true' | 'false')
+;
