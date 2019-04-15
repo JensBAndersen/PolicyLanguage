@@ -28,15 +28,11 @@ CapabilityRule:
 ;
 
 Entity:
-	'Entity' name=ID 'identifier' idType=Type idName=STRING '{' path=GetPath? | properties += (Property|EntityRef)* '}'
+	'Entity' name=ID 'identifier' idType=Type  idName=STRING '{' ('uri' value=STRING)? properties += Property* '}'
 ;
 
 Property:
-	type=(Type | EntityRef) name=ID
-;
-
-GetPath:
-	'uri' STRING
+	type=(Type|EntityRef) name=ID
 ;
 
 
@@ -119,7 +115,6 @@ EntityPolicy:
 	'EntityPolicy' ':' entity=[Entity] 'in' action=[Action|FQN] require=Require
 ;
 
-
 Require:
 	'if' '(' requirement=LogicExp ')'
 ;
@@ -133,7 +128,7 @@ Conjunction returns Proposition:
 ;
 
 Condition returns Proposition:
-	 Comparison | Bool | StringComparison // EntityProperty
+	 Comparison | Bool //| StringComparison // EntityProperty
 ;
 
 Comparison:
@@ -153,33 +148,36 @@ Factor returns Expression:
 ;
 
 Primitive returns Expression:
-	IntExp | '(' fisk=LogicExp ')' | EntityProperty
+	IntExp | '(' logicExp=LogicExp ')' | EntityProperty
 ;
 
 EntityProperty:
-//	entity=[Entity]('.' property+=[Property])+
-	entity=[Entity]'.' property+=[Property|FQN]
+	entity=[Entity] entityPropertyRef=EntityPropertyRef
+;
+
+EntityPropertyRef:
+	'.' propertyRef=[Property] (ref=EntityPropertyRef)?
 ;
 
 IntExp:
 	value=INT
 ;
 
-StringComparison:
-	left=StringValue operator=StringOp right=StringValue
-;
-
-StringValue:
-	StringPrim | EntityProperty
-;
-
-StringPrim:
-	value = STRING
-;
-
-StringOp:
-	{RelEQ} '==' | {RelNEQ} '!='
-;
+//StringComparison:
+//	left=StringValue operator=StringOp right=StringValue
+//;
+//
+//StringValue:
+//	StringPrim | EntityProperty
+//;
+//
+//StringPrim:
+//	value = STRING
+//;
+//
+//StringOp:
+//	{RelEQ} 'equal to' | {RelNEQ} 'not equal to'
+//;
 
 Bool:
 	bool=('true' | 'false')
