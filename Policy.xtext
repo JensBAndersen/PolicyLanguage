@@ -35,7 +35,6 @@ Property:
 	type=(Type|EntityRef) name=ID
 ;
 
-
 Type:
 	({tString}'string' | {tInt}'int' | {tFloat}'float' | {tBoolean}'boolean' | {tDate}'date' | {tTime}'time')
 ;
@@ -43,7 +42,6 @@ Type:
 EntityRef:
 	ref=[Entity]
 ;
-
 
 CapabilityAction:
 	action = [Action | FQN] ('{' nestedActions += CapabilityAction* '}')?
@@ -58,8 +56,6 @@ pResource:
 	
 	'}'
 ;
-
-
 
 FQN: ID ("." ID)*;
 
@@ -76,9 +72,8 @@ Action:
 	'}'
 ;
 
-
 QueryParam:
-	varName=STRING type=QueryType
+	name=STRING type=QueryType
 ;
 
 QueryType:
@@ -108,7 +103,7 @@ Role:
 ;
 
 RolePolicy:
-	'RolePolicy' ':' role=RoleType 'can' action=[Action|FQN] require=Require?
+	'RolePolicy' ':' role=RoleType 'can' action=[Action|FQN] require=RoleRequire?
 ;
 
 EntityPolicy:
@@ -117,6 +112,10 @@ EntityPolicy:
 
 Require:
 	'if' '(' requirement=LogicExp ')'
+;
+
+RoleRequire:
+	'if' '(' requirement=rLogicExp ')'
 ;
 
 LogicExp returns Proposition:
@@ -128,7 +127,7 @@ Conjunction returns Proposition:
 ;
 
 Condition returns Proposition:
-	 Comparison | Bool //| StringComparison // EntityProperty
+	 Comparison | Bool | StringComparison // EntityProperty
 ;
 
 Comparison:
@@ -163,22 +162,55 @@ IntExp:
 	value=INT
 ;
 
-//StringComparison:
-//	left=StringValue operator=StringOp right=StringValue
-//;
-//
-//StringValue:
-//	StringPrim | EntityProperty
-//;
-//
-//StringPrim:
-//	value = STRING
-//;
-//
-//StringOp:
-//	{RelEQ} 'equal to' | {RelNEQ} 'not equal to'
-//;
+StringComparison:
+	'compare' '('left=StringValue operator=StringOp right=StringValue')'
+;
+
+StringValue:
+	StringPrim | EntityProperty
+;
+
+StringPrim:
+	value = STRING
+;
+
+StringOp:
+	{sRelEQ} '===' | {sRelNEQ} '!=='
+;
 
 Bool:
 	bool=('true' | 'false')
+;
+
+// Role Require
+rLogicExp returns Proposition:
+	rConjunction ('||' {OR.left=current} right=rConjunction)* 
+;
+
+rConjunction returns Proposition:
+	rCondition ('&&' {AND.left=current} right=rCondition)*
+;
+
+rCondition returns Proposition:
+	 rComparison | Bool //| StringComparison // EntityProperty
+;
+
+rComparison:
+	left=rExp (op=RelationalOp right=rExp)?
+;
+
+rExp returns Expression:
+	rFactor ( ('+' {Add.left=current} | '-' {Sub.left=current}) right=rFactor)*
+;
+
+rFactor returns Expression:
+	rPrimitive ( ('*' {Mul.left=current} | '/' {Div.left=current}) right=rPrimitive)*
+;
+
+rPrimitive returns Expression:
+	IntExp | '(' logicExp=rLogicExp ')' | QueryParamRef
+;
+
+QueryParamRef:
+	ref=[QueryParam|FQN]
 ;

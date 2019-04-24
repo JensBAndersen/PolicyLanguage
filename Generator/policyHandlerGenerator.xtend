@@ -25,10 +25,14 @@ import com.ffu.policy.IntExp
 import com.ffu.policy.RelNEQ
 import com.ffu.policy.StringOp
 import com.ffu.policy.EntityProperty
-import com.ffu.policy.Property
-import org.eclipse.emf.common.util.EList
 import com.ffu.policy.StringPrim
-
+import com.ffu.policy.EntityPropertyRef
+import com.ffu.policy.RolePolicy
+import com.ffu.policy.rComparison
+import com.ffu.policy.QueryParamRef
+import com.ffu.policy.tString
+import com.ffu.policy.tInt
+import com.ffu.policy.tFloat
 // «»
 
 class policyHandlerGenerator{
@@ -40,25 +44,26 @@ class policyHandlerGenerator{
 	import java.util.HashMap;
 	
 	public class PolicyHandler {
+		private int CheckCounter = 0;
 	
-		private static HashMap<String, HashMap<String,Boolean>> rolePolicyMap = new HashMap<String, HashMap<String, Boolean>>() {{
+		private static HashMap<String, HashMap<String, Condition>> rolePolicyMap = new HashMap<String, HashMap<String, Condition>>() {{
 			«FOR _role: domain.roles»
 				put("«_role.name»", new HashMap<String,Boolean>(){{
-					«FOR policy: domain.rolePolicies.filter[role.roleRefs instanceof RoleRef].filter[role.roleRefs.ref.name.equals(_role.name)]»
-						put("«findResource(policy.action)»/«policy.action.name»", true);
+					«FOR rPolicy: domain.rolePolicies.filter[role.roleRefs instanceof RoleRef].filter[role.roleRefs.ref.name.equals(_role.name)]»
+						put("«findResource(rPolicy.action)»/«rPolicy.action.name»", map -> «printCondition(rPolicy)»);
 					«ENDFOR»
 				}});
 			«ENDFOR»
 		}};
 		
-		private static HashMap<String, HashMap<String,Boolean>> entityPolicyMap = new HashMap<String, HashMap<String, Boolean>>() {{
+		rivate static HashMap<String, HashMap<String, EntityCondition>> entityPolicyMap = new HashMap<String, HashMap<String, EntityCondition>>() {{
 			«FOR _entity: domain.entities»
 				put("«_entity.name»", new HashMap<String,Boolean>(){{
 
 				«FOR _resource: domain.resources»
 					«FOR _action: _resource.actions»
-					«var t = domain.entityPolicies.filter[_entity.name.equals(entity.name)].findFirst[(findResource(action) + "/" +action.name).equals(_resource.name + "/" + _action.name)]»
-						put("«_resource.name»/«_action.name»", «printCondition(t)»);
+					«var ePolicy = domain.entityPolicies.filter[_entity.name.equals(entity.name)].findFirst[(findResource(action) + "/" +action.name).equals(_resource.name + "/" + _action.name)]»
+						put("«_resource.name»/«_action.name»", (map, counter) -> «printCondition(ePolicy)»);
 					«ENDFOR»
 				«ENDFOR»
 				}});
@@ -66,23 +71,55 @@ class policyHandlerGenerator{
 
 		}};
 	
-	   public boolean roleAuthorize(String Role, String Action){
-	       try {
-	           return rolePolicyMap.get(Role).get(Action);
-	       }
-	       catch (Exception e){
-	           return false;
-	       }
-	   }
+	public boolean roleAuthorize(String Role, String Action, MultivaluedMap<String, String> map) {
+		System.out.println("PolicyHandler.roleAuthorize()");
+		try {
+			//System.out.println("\t Authorize");
+			return rolePolicyMap.get(Role).get(Action).evaluate(map);
+		} catch (Exception e) {
+			System.out.println("\t " + Role + " is not allowed to perform action: " + Action);
+			return false;
+		}
+	}
+	
+	public boolean entityAuthorize(String Entity, String Action, MultivaluedMap<String, String> map) {
+		System.out.println("PolicyHandler.entityAuthorize()");
+		CheckCounter++;
+		try {
+			//System.out.println("\t Authorize");
+			return entityPolicyMap.get(Entity).get(Action).evaluate(map, CheckCounter);
+		} catch (Exception e) {
+			System.out.println("\t " + Entity + " is not allowed to perform action: " + Action);
+			return false;
+		}
+	}
+	
+	private interface Condition {
+		boolean evaluate(MultivaluedMap<String, String> mMap); //TODO rename
+	}
+	private interface EntityCondition {
+		boolean evaluate(MultivaluedMap<String, String> mMap, int checkCounter); //TODO rename
+		}
 	}
 	'''
 		
 	}
 	
+	def static CharSequence printCondition(RolePolicy RP){
+		var returnVar = ""
+		if(RP !== null){
+			returnVar = RP.require.requirement.generateLogic.toString;
+		} else {
+			returnVar = "null"
+		}
+		
+		return returnVar;
+	}
+	
 	def static CharSequence printCondition(EntityPolicy EP){
 		var returnVar = ""
 		if(EP !== null){
-			returnVar = EP.require.requirement.generateLogic.toString;
+			returnVar = EP.require.requirement.rGenerateLogic.toString;
 		} else {
 			returnVar = "null"
 		}
@@ -103,7 +140,7 @@ class policyHandlerGenerator{
 	def static dispatch CharSequence generateExp(Div x) '''(«x.left.generateExp»/«x.right.generateExp»)'''
 	def static dispatch CharSequence generateExp(IntExp x) '''«x.value»'''
 	def static dispatch CharSequence generateExp(EntityProperty x) '''
-«««	OracleClient.get«x.entity.name»(map.getFirst("sampleID"))«findProperty(x.property)»
+	OracleClient.get«x.entity.name»(map.getFirst("«x.entity.idName»"), counter)«findProperty(x.entityPropertyRef)»)
 	'''
 
 	
@@ -125,11 +162,31 @@ class policyHandlerGenerator{
 		action.eContainer.getResourceName
 	}	
 	
-	def static CharSequence findProperty(EList<Property> properties){
-		var returnVar = "";
-		for(x: properties){
-			returnVar += "." + x.name
-		}
-		return returnVar;
+	def static CharSequence findProperty(EntityPropertyRef entityPropertyRef){
+		if(entityPropertyRef === null) return ""
+		return "."+ entityPropertyRef.propertyRef.name + findProperty(entityPropertyRef.ref)
+	}
+	
+//	Role logic
+	
+	def static dispatch CharSequence rGenerateLogic(OR x) '''(«x.left.generateLogic»||«x.right.generateLogic»)'''
+	def static dispatch CharSequence rGenerateLogic(AND x) '''(«x.left.generateLogic»&&«x.right.generateLogic»)'''
+	def static dispatch CharSequence rGenerateLogic(rComparison x) '''(«x.left.generateExp» «x.op.generateOp» «x.right.generateExp»)'''
+	def static dispatch CharSequence rGenerateLogic(Bool x) '''«x.bool»'''
+//	def static dispatch CharSequence rGenerateLogic(StringPrim x) '''("«x.value»")'''
+//	def static dispatch CharSequence rGenerateLogic(StringComparison x) '''«x.operator.generateStringOp»(«x.left».equals(«x.right»))'''
+	
+	def static dispatch CharSequence rGenerateExp(Add x) '''(«x.left.generateExp»+«x.right.generateExp»)'''
+	def static dispatch CharSequence rGenerateExp(Sub x) '''(«x.left.generateExp»-«x.right.generateExp»)'''
+	def static dispatch CharSequence rGenerateExp(Mul x) '''(«x.left.generateExp»*«x.right.generateExp»)'''
+	def static dispatch CharSequence rGenerateExp(Div x) '''(«x.left.generateExp»/«x.right.generateExp»)'''
+	def static dispatch CharSequence rGenerateExp(IntExp x) '''«x.value»'''
+	def static dispatch CharSequence rGenerateExp(QueryParamRef x){
+		switch(x.ref.type){
+			case tString: '''map.getFirst("«x.ref.name»")'''
+			case tInt: '''Integer.parseInt(map.getFirst("«x.ref.name»"))'''
+			case tFloat: '''Integer.parseFloat(map.getFirst("«x.ref.name»"))'''
+			default :'''NOT IMPLEMENTED'''
+		}	
 	}
 }

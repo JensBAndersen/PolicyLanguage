@@ -44,7 +44,7 @@ class IntermediatorClientGenerator{
 		var returnVar = '''?UserID=" + UserID + "&BoxID=" + BoxID'''
 		
 		for (qp : qpList){
-			returnVar += ''' + "&«qp.varName»=" + «qp.varName»'''
+			returnVar += ''' + "&«qp.name»=" + «qp.name»'''
 		}
 		
 		return returnVar
@@ -54,7 +54,7 @@ class IntermediatorClientGenerator{
 		var returnVar = "String UserID, String BoxID";
 		
 		for (QueryParam qp: qpList){
-			returnVar += ", " + paramTypeMapper(qp.type) + " " + qp.varName
+			returnVar += ", " + paramTypeMapper(qp.type) + " " + qp.name
 		}
 		
 		return returnVar;

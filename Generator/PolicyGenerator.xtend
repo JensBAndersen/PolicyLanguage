@@ -26,31 +26,31 @@ class PolicyGenerator extends AbstractGenerator {
 		
 		val domain = resource.allContents.filter(Domain).next
 		
-//		/** JAVA Generator **/
-//		fsa.generateFile('output.txt', javaGenerator.generate(domain, resource))
-//	
-//		/** SQL Generator **/
-//		//fsa.generateFile('SQL.txt', sqlGenerator.generate(domain, resource))
-//		
-//		//** Guard Generator **/
-//		fsa.generateFile('Guard.java', guardGenerator.generate(domain, resource))
-//		
-//		/** Intermediary Generator **/
-//		fsa.generateFile('RestInterface.java', restInterfaceGenerator.generate(domain, resource))
-//		
-//		/** CapabilityHandler Generator**/
-//		fsa.generateFile('CapabilityHandler.java', capabilityHandlerGenerator.generate(domain, resource))
-//		
-//		/** PolicyHandler Generator**/
-//		fsa.generateFile('PolicyHandler.java', policyHandlerGenerator.generate(domain, resource))
-//		
-//		/** Intermediary Client Generator **/
-//		fsa.generateFile('IntermediatorClient.java', IntermediatorClientGenerator.generate(domain, resource))
-//		
-//		/** Graphics Generator **/
-//		fsa.generateFile('graph.gv', graphGenerator.generate(domain, resource))
-//		
-//		//** Guard Generator **/
-//		fsa.generateFile('OracleClient.java', oracleClientGenerator.generate(domain, resource))
+		/** JAVA Generator **/
+		fsa.generateFile('output.txt', javaGenerator.generate(domain, resource))
+	
+		/** SQL Generator **/
+		//fsa.generateFile('SQL.txt', sqlGenerator.generate(domain, resource))
+		
+		//** Guard Generator **/
+		fsa.generateFile('Guard.java', guardGenerator.generate(domain, resource))
+		
+		/** Intermediary Generator **/
+		fsa.generateFile('RestInterface.java', restInterfaceGenerator.generate(domain, resource))
+		
+		/** CapabilityHandler Generator**/
+		fsa.generateFile('CapabilityHandler.java', capabilityHandlerGenerator.generate(domain, resource))
+		
+		/** PolicyHandler Generator**/
+		fsa.generateFile('PolicyHandler.java', policyHandlerGenerator.generate(domain, resource))
+		
+		/** Intermediary Client Generator **/
+		fsa.generateFile('IntermediatorClient.java', IntermediatorClientGenerator.generate(domain, resource))
+		
+		/** Graphics Generator **/
+		fsa.generateFile('graph.gv', graphGenerator.generate(domain, resource))
+		
+		//** Guard Generator **/
+		fsa.generateFile('OracleClient.java', oracleClientGenerator.generate(domain, resource))
 	}	
 }

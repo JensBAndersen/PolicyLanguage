@@ -74,7 +74,7 @@ class restInterfaceGenerator{
 		var returnVar = "UserID, BoxID"
 		
 		for (QueryParam qp: qpList){
-			returnVar += ", " + qp.varName
+			returnVar += ", " + qp.name
 		}
 		
 		
@@ -86,7 +86,7 @@ class restInterfaceGenerator{
 		var returnVar = '''@QueryParam("UserID") String UserID, @QueryParam("Capability") UUID Capability, @QueryParam("BoxID") String BoxID'''
 		
 		for (QueryParam qp: qpList){
-			returnVar += ", @QueryParam(\"" + qp.varName + "\") " + paramTypeMapper(qp.type) + " " + qp.varName 
+			returnVar += ", @QueryParam(\"" + qp.name + "\") " + paramTypeMapper(qp.type) + " " + qp.name 
 			
 		}
 		

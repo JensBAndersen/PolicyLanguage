@@ -15,6 +15,8 @@ import com.ffu.policy.EntityPropertyRef
 import java.util.ArrayList
 import com.ffu.policy.Entity
 import com.ffu.policy.EntityRef
+import com.ffu.policy.QueryParam
+import com.ffu.policy.QueryParamRef
 
 /**
  * This class contains custom scoping description.
@@ -54,6 +56,22 @@ class PolicyScopeProvider extends AbstractPolicyScopeProvider {
 			 	default: println("default 2")
 			}	
 		}
+		
+//		Hvis FQN virker behøver jeg ikke selv at lave scope
+//		if(context instanceof QueryParamRef && reference==Literals.QUERY_PARAM_REF__REF) {
+//			println(context.eContainer)
+//			println(context.eContainer.eContainer)
+//			println(context.eContainer.eContainer.eContainer)
+//			
+//			var domain = EcoreUtil2.getContainerOfType(context,Domain)
+//			var queryParams = EcoreUtil2.getAllContentsOfType(domain, QueryParam)
+//
+//			var candidates = new ArrayList<QueryParam>
+//
+//			candidates.addAll(queryParams)
+//
+//			return Scopes.scopeFor(candidates)
+//		}
 		
 //		### Save for easy copy 
 
